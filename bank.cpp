@@ -60,31 +60,34 @@ bool login(sql::Connection* con, const string& pesel, const string& password) {
 
 
 
-
+//Funckja sprawdzajaca stan konta
 int sprawdzStanKonta(sql::Connection* con, const string& pesel) {
     try {
-        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT stan_konta FROM bankregisterclient WHERE pesel = ?"));
-        pstmt->setString(1, pesel);
-        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        if (res->next()) {
-            return res->getInt("stan_konta");
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT stan_konta FROM bankregisterclient WHERE pesel = ?")); // Przygotowanie zapytania SQL. Zapytanie to wybiera stan_konta z tabeli bankregisterclient, gdzie pesel jest równy podanemu pesel.
+        pstmt->setString(1, pesel); // Ustawia wartość pierwszego (i jedynego) parametru w przygotowanym zapytaniu na podany PESEL. Indeksy w zapytaniach przygotowanych zaczynają się od 1.
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery()); // Wykonuje zapytanie i przechowuje wynik w unikalnym wskaźniku do obiektu sql::ResultSet.
+        if (res->next()) { // Sprawdzenie, czy zapytanie zwrocilo wynik. Metoda next() w obiekcie ResultSet przesuwa kursor na następny wiersz wyniku. Tutaj sprawdzamy, czy istnieje co najmniej jeden wiersz.
+            return res->getInt("stan_konta"); // res->getInt("stan_konta") pobiera wartość kolumny stan_konta z aktualnego wiersza wyniku i zwraca ją jako wartość funkcji, jeśli wiersz istnieje.
         }
-        else {
+        else { // Obsługa przypadku, gdy konto nie istnieje
             cerr << "Nie znaleziono konta z podanym peselem." << endl;
             return -1;
         }
     }
-    catch (sql::SQLException& e) {
+    catch (sql::SQLException& e) { // Blok catch dla wyjątków SQL
         cerr << "SQL Error: " << e.what() << endl;
         cerr << "SQLState: " << e.getSQLState() << endl;
         cerr << "Error Code: " << e.getErrorCode() << endl;
         return -1;
     }
-    catch (exception& e) {
+    catch (exception& e) { // Blok catch dla innych wyjątków
         cerr << "Other Error: " << e.what() << endl;
         return -1;
     }
 }
+
+
+
 
 Konto sprawdzDaneKonta(sql::Connection* con, const string& pesel) {
     Konto konto;
