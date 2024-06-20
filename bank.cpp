@@ -92,10 +92,11 @@ int sprawdzStanKonta(sql::Connection* con, const string& pesel) {
 Konto sprawdzDaneKonta(sql::Connection* con, const string& pesel) {
     Konto konto;
     try {
-        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT id, pesel, name, lastname, numer_rozliczeniowy, typ_konta FROM bankregisterclient WHERE pesel = ?"));
-        pstmt->setString(1, pesel);
-        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        if (res->next()) {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT id, pesel, name, lastname, numer_rozliczeniowy, typ_konta FROM bankregisterclient WHERE pesel = ?")); // Przygotowanie zapytania SQL, pobiera różne dane konta na podstawie pesel.
+        pstmt->setString(1, pesel); // Ustawienie wartości parametru PESEL w zapytaniu
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery()); // Wykonanie zapytania i przechwycenie wyniku
+        if (res->next()) { // Sprawdzenie, czy zapytanie zwróciło wynik // Jeśli wynik jest dostępny, ustawienie danych konta // Metoda next() w obiekcie ResultSet przesuwa kursor na następny wiersz wyniku.
+            // if (res->next()) sprawdza, czy wynik zawiera co najmniej jeden wiersz. Jeśli tak, dane są pobierane z wyniku i ustawiane w obiekcie konto.
             konto.ustawId(res->getInt("id"));
             konto.ustawPesel(res->getString("pesel"));
             konto.ustawImie(res->getString("name"));
@@ -118,8 +119,12 @@ Konto sprawdzDaneKonta(sql::Connection* con, const string& pesel) {
         cerr << "Other Error: " << e.what() << endl;
         konto.ustawId(-1);
     }
-    return konto;
-}
+    return konto; // Zwraca obiekt konto, który może zawierać pobrane dane konta lub informacje o błędzie (w przypadku, gdy ID konta zostało ustawione na -1).
+}                   // pozniej za pomoca tego obiektu wywolujemy metody pobierzImie itp. zeby wyswietlic dane
+
+
+
+
 
 
 int main() {
