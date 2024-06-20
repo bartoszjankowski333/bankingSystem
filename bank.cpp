@@ -18,38 +18,49 @@ const string server = "tcp://127.0.0.1";
 const string username = "root";
 const string password = "";
 
+
+
+
 // Funkcja logowania
+// Deklaracja funkcji, true w przypadku pozytywnego zalogowania, false w przeciwnym razie
+// Funkcja przyjmuje wskaznik do obiektu sql ktory reprezentuje polaczenie z baza danych oraz dwa ciagi znakow, pesel i password
 bool login(sql::Connection* con, const string& pesel, const string& password) {
     try {
-        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT password FROM bankregisterclient WHERE pesel = ?"));
-        pstmt->setString(1, pesel);
-        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
-        if (res->next()) {
-            string storedPassword = res->getString("password");
-            if (storedPassword == password) {
-                return true;
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT password FROM bankregisterclient WHERE pesel = ?")); // Przygotowanie zapytania SQL. Zapytanie to wybiera hasło z tabeli bankregisterclient, gdzie PESEL jest równy podanemu PESEL.
+        pstmt->setString(1, pesel); // Ustawia wartość pierwszego (i jedynego) parametru w przygotowanym zapytaniu na podany PESEL. Indeksy w zapytaniach przygotowanych zaczynają się od 1.
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery()); // Wykonuje zapytanie i przechowuje wynik w unikalnym wskaźniku do obiektu sql::ResultSet.
+        if (res->next()) { // Sprawdza, czy wynik zapytania zawiera jakiekolwiek wiersze (czy użytkownik o podanym PESEL istnieje).
+            string storedPassword = res->getString("password"); // Pobiera hasło z wyniku zapytania.
+            if (storedPassword == password) { //Porównuje pobrane hasło z hasłem podanym przez użytkownika.
+                return true; // Jeśli hasła są zgodne, funkcja zwraca true.
             }
             else {
-                cout << "Niepoprawne haslo." << endl;
+                cout << "Niepoprawne haslo." << endl; // Jeśli hasła nie są zgodne, funkcja wyświetla komunikat "Niepoprawne haslo." i zwraca false.
                 return false;
             }
         }
         else {
-            cout << "Konto nie istnieje." << endl;
+            cout << "Konto nie istnieje." << endl; // Jeśli wynik zapytania nie zawiera żadnych wierszy (czyli użytkownik o podanym PESEL nie istnieje), funkcja wyświetla komunikat "Konto nie istnieje." i zwraca false
             return false;
         }
     }
-    catch (sql::SQLException& e) {
+    catch (sql::SQLException& e) { // Blok catch dla wyjątków SQL
         cerr << "SQL Error: " << e.what() << endl;
         cerr << "SQLState: " << e.getSQLState() << endl;
         cerr << "Error Code: " << e.getErrorCode() << endl;
         return false;
     }
-    catch (exception& e) {
+    catch (exception& e) { // Blok catch dla innych wyjątków
         cerr << "Other Error: " << e.what() << endl;
         return false;
     }
 }
+
+
+
+
+
+
 int sprawdzStanKonta(sql::Connection* con, const string& pesel) {
     try {
         unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT stan_konta FROM bankregisterclient WHERE pesel = ?"));
