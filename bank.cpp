@@ -132,8 +132,8 @@ int main() {
     char wybor;
     cout << "Witaj w aplikacji bankowej." << " Wybierz opcje, ktora chcesz wykonac na swoim koncie." << endl << "1. Zaloz konto" << endl << "2. Zaloguj sie" << endl;
     cin >> wybor;
-    switch (wybor) {
-    case '1':
+    if (wybor == 1) {
+
         cout << "Podaj pesel: ";
         cin >> pesel;
         cout << "Wpisz haslo: ";
@@ -157,8 +157,8 @@ int main() {
         pstmt->setString(7, string(1, typ_konta)); // Konwersja char na string
         pstmt->execute();
         cout << "Twoje konto zostalo zalozone." << endl;
-        break;
-    case '2':
+    }
+    if (wybor == '2') {
         cout << "Podaj pesel: ";
         cin >> pesel;
         cout << "Podaj haslo: ";
@@ -172,14 +172,15 @@ int main() {
                 cout << "3. Wplata." << endl;
                 cout << "4. Wyplata." << endl;
                 cout << "5. Wyloguj sie." << endl;
-                cout<< "6. Zamknij konto." << endl;
+                cout << "6. Zamknij konto." << endl;
                 cin >> wybor;
-                if (wybor == '1') {
-                    int saldo = sprawdzStanKonta(con, pesel);
+                int saldo = sprawdzStanKonta(con, pesel);
+                Konto konto = sprawdzDaneKonta(con, pesel);
+                switch (wybor) {
+                case '1':
                     cout << "Twoj stan konta wynosi: " << saldo << endl;
-                }
-                if (wybor == '2') {
-                    Konto konto = sprawdzDaneKonta(con, pesel);
+
+                case '2':
                     cout << "Informacje o Twoim koncie: " << endl;
                     cout << "ID: " << konto.pobierzId() << endl;
                     cout << "Pesel: " << konto.pobierzPesel() << endl;
@@ -187,13 +188,15 @@ int main() {
                     cout << "Nazwisko: " << konto.pobierzNazwisko() << endl;
                     cout << "Numer rozliczeniowy: " << konto.pobierzNumerRozliczeniowy() << endl;
                     cout << "Typ konta: " << konto.pobierzTypKonta() << endl;
-                }
-                if (wybor == '3') {
+                case '3':
+
+                case '4':
+
+                case '5':
                     cout << "Wylogowano z konta." << endl;
                     break;
                     return 0;
-                }
-                if (wybor == '4') {
+                case '6':
                     cout << "Na pewno chcesz zamknac swoje konto? Mamy niesamowite znizki dla naszych klientow." << endl << "Stracisz WSZYSTKIE promocje oraz proces usuwania konta jest nieodwracalny." << endl;
                     cin >> wybor;
                     if (wybor == 'tak') {
@@ -205,14 +208,10 @@ int main() {
                     }
                 }
             }
-        }
-        else {
-            cout << "Niepoprawne dane." << endl;
-        }
-        break;
-    default:
-        cout << "Wybierz odpowiednia opcje" << endl;
-    }
+        } else cout << "Niepoprawne dane." << endl;
+    
+        
+    } else cout << "Wybierz odpowiednia opcje" << endl;
 
     delete pstmt;
     delete con;
