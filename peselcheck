@@ -1,0 +1,35 @@
+bool czyPeselPoprawny(const string& pesel) {
+    // Sprawdzenie długości PESEL
+    if (pesel.length() != 11) {
+        return false;
+    }
+
+    // Sprawdzenie czy każdy znak PESEL jest cyfrą
+    for (char c : pesel) {
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+
+    // Jeśli wszystkie warunki są spełnione, PESEL jest poprawny
+    return true;
+}
+
+
+int main() {
+    string pesel;
+
+    // Pobieranie PESEL od użytkownika
+    cout << "Podaj PESEL (11 cyfr): ";
+    cin >> pesel;
+
+    // Walidacja PESEL
+    if (!czyPeselPoprawny(pesel)) {
+        cout << "Błąd: PESEL powinien składać się z dokładnie 11 cyfr." << endl;
+        return 1; // Zakończenie programu z kodem błędu
+    }
+
+    // Dalsza część programu...
+
+    return 0;
+}
