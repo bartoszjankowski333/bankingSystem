@@ -87,17 +87,26 @@ bool czyNumerPoprawny(const string& numer_rozliczeniowy) {
 
 
 
-// Funkcja sprawdzająca, czy numer rozliczeniowy ma 26 cyfr
-bool sprawdzNumerRozliczeniowy(const string& numer) {
-    if (numer.length() != 26) {
+
+bool czyPoprawnyTypKonta(const string& typ) {
+    // Sprawdź, czy typ ma dokładnie jeden znak
+    if (typ.length() != 1) {
         return false;
     }
-    return regex_match(numer, regex("\\d{26}"));
-}
 
-// Funkcja sprawdzająca, czy typ konta jest jedną literą 'C' lub 'S'
-bool sprawdzTypKonta(char typ) {
-    return typ == 'C' || typ == 'S';
+    // Pobierz pierwszy (i jedyny) znak
+    char znak = typ[0];
+
+    // Sprawdź, czy znak jest literą
+    if (!isalpha(znak)) {
+        return false;
+    }
+
+    // Konwertuj na wielką literę, aby obsłużyć zarówno 'c' jak i 'C'
+    znak = toupper(znak);
+
+    // Sprawdź, czy znak jest równy 'C' lub 'S'
+    return (znak == 'C' || znak == 'S');
 }
 
 
@@ -219,18 +228,18 @@ int main() {
         do {
             cout << "Podaj numer rozliczeniowy (26 cyfr): ";
             cin >> numer_rozliczeniowy;
-            if (!sprawdzNumerRozliczeniowy(numer_rozliczeniowy)) {
+            if (!czyNumerPoprawny(numer_rozliczeniowy)) {
                 cout << "Numer rozliczeniowy musi mieć dokładnie 26 cyfr." << endl;
             }
-        } while (!sprawdzNumerRozliczeniowy(numer_rozliczeniowy));
+        } while (!czyNumerPoprawny(numer_rozliczeniowy));
         stan_konta = 0;  // Ustawienie stanu konta na 0
         do {
             cout << "Podaj typ konta (C lub S): ";
             cin >> typ_konta;
-            if (!sprawdzTypKonta(typ_konta)) {
+            if (!czyPoprawnyTypKonta(typ_konta)) {
                 cout << "Typ konta musi być 'C' lub 'S'." << endl;
             }
-        } while (!sprawdzTypKonta(typ_konta));
+        } while (!czyPoprawnyTypKonta(typ_konta));
 
         
         pstmt = con->prepareStatement("INSERT INTO bankregisterclient(pesel, password, name, lastname, numer_rozliczeniowy, stan_konta, typ_konta) VALUES(?,?,?,?,?,?,?)");
