@@ -211,13 +211,13 @@ int main() {
     cout << "Witaj!" << " Wybierz opcje:" << endl << "1. Zaloz konto" << endl << "2. Zaloguj sie" << endl;
     cin >> wybor;
     if (wybor == '1') {
-
-        cout << "Podaj pesel: ";
-        cin >> pesel;
-        if (!czyPeselPoprawny(pesel)) {
-            cout << "Blad: PESEL powinien składac sie z dokladnie 11 cyfr." << endl;
-            return 1; // Zakończenie programu z kodem błędu
-        }
+        do {
+            cout << "Podaj pesel: ";
+            cin >> pesel;
+            if (!czyPeselPoprawny(pesel) {
+                cout << "Blad: PESEL powinien składac sie z dokladnie 11 cyfr." << endl;
+            }
+        } while (!czyPeselPoprawny(pesel));
         cout << "Wpisz haslo: ";
         cin >> password;
         cout << "Podaj imie: ";
