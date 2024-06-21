@@ -87,7 +87,18 @@ bool czyNumerPoprawny(const string& numer_rozliczeniowy) {
 
 
 
+// Funkcja sprawdzająca, czy numer rozliczeniowy ma 26 cyfr
+bool sprawdzNumerRozliczeniowy(const string& numer) {
+    if (numer.length() != 26) {
+        return false;
+    }
+    return regex_match(numer, regex("\\d{26}"));
+}
 
+// Funkcja sprawdzająca, czy typ konta jest jedną literą 'C' lub 'S'
+bool sprawdzTypKonta(char typ) {
+    return typ == 'C' || typ == 'S';
+}
 
 
 
