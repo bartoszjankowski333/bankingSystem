@@ -75,7 +75,7 @@ bool czyNumerPoprawny(const string& numer_rozliczeniowy) {
     }
 
     // Sprawdzenie czy każdy znak numer jest cyfrą
-    for (char c : pesel) {
+    for (char c : numer_rozliczeniowy) {
         if (!isdigit(c)) {
             return false;
         }
