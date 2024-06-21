@@ -1,0 +1,446 @@
+#include <iostream>
+#include "classes.h"
+#include <stdlib.h>
+#include <memory>
+#include <conio.h>
+#include <random>
+#include "mysql_connection.h"
+#include <cppconn/driver.h>
+#include <cppconn/exception.h>
+#include <cppconn/prepared_statement.h>
+#include <cppconn/resultset.h>
+using namespace std;
+
+const string server = "tcp://127.0.0.1";
+const string username = "root";
+const string password = "";
+
+// Funkcja wczytująca hasło z ukrytym wyświetlaniem na Windows
+string getHiddenPassword() {
+    string password;
+    cout << "Podaj haslo: ";
+
+    char ch;
+    while ((ch = _getch()) != '\r') {  // wczytaj znaki, dopóki nie zostanie naciśnięty Enter
+        if (ch == '\b' && !password.empty()) {  // obsługa klawisza backspace
+            cout << "\b \b";
+            password.pop_back();
+        }
+        else {
+            password.push_back(ch);
+            cout << '*';  // wyświetl gwiazdkę zamiast rzeczywistego znaku
+        }
+    }
+
+    cout << endl;
+    return password;
+}
+
+// Funkcja logowania
+bool login(sql::Connection* con, const string& pesel) {
+    string password = getHiddenPassword();  // Wczytanie hasła bez wyświetlania
+
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT password FROM bankregisterclient WHERE pesel = ?"));
+        pstmt->setString(1, pesel);
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        if (res->next()) {
+            string storedPassword = res->getString("password");
+            if (storedPassword == password) {
+                return true;
+            }
+            else {
+                cout << "Niepoprawne haslo." << endl;
+                return false;
+            }
+        }
+        else {
+            cout << "Konto nie istnieje." << endl;
+            return false;
+        }
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+        return false;
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+        return false;
+    }
+}
+
+bool czyPeselPoprawny(const string& pesel) {
+    // Sprawdzenie długości PESEL
+    if (pesel.length() != 11) {
+        return false;
+    }
+
+    // Sprawdzenie czy każdy znak PESEL jest cyfrą
+    for (char c : pesel) {
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+
+    // Jeśli wszystkie warunki są spełnione, PESEL jest poprawny
+    return true;
+}
+
+bool czyNumerPoprawny(const string& numer_rozliczeniowy) {
+    // Sprawdzenie długości numeru rozliczeniowego 
+    if (numer_rozliczeniowy.length() != 12) {
+        return false;
+    }
+
+    // Sprawdzenie czy każdy znak numer jest cyfrą
+    for (char c : numer_rozliczeniowy) {
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+
+    // Jeśli wszystkie warunki są spełnione, numer jest poprawny
+    return true;
+}
+
+// Funkcja sprawdzająca, czy typ konta jest jedną literą 'C' lub 'S'
+bool czyPoprawnyTypKonta(const string& typ_konta) {
+    // Sprawdź, czy typ ma dokładnie jeden znak
+    if (typ_konta.length() != 1) {
+        return false;
+    }
+
+    // Pobierz pierwszy (i jedyny) znak
+    char znak = typ_konta[0];
+
+    // Sprawdź, czy znak jest literą
+    if (!isalpha(znak)) {
+        return false;
+    }
+
+    // Konwertuj na wielką literę, aby obsłużyć zarówno 'c' jak i 'C'
+    znak = toupper(znak);
+
+    // Sprawdź, czy znak jest równy 'C' lub 'S'
+    return (znak == 'C' || znak == 'S');
+}
+//Funkcja generująca numer konta
+string generateRandomNumber() {
+
+    random_device rd;
+    mt19937 generator(rd());
+    uniform_int_distribution<int> distribution(0, 9);
+
+    string numer_rozliczeniowy;
+    numer_rozliczeniowy.reserve(26);
+
+
+    for (int i = 0; i < 26; ++i) {
+        int digit = distribution(generator);
+        numer_rozliczeniowy += to_string(digit);
+    }
+
+    return numer_rozliczeniowy;
+}
+
+void zamknijKonto(sql::Connection* con, const string& pesel) {
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("DELETE FROM bankregisterclient WHERE pesel = ?"));
+        pstmt->setString(1, pesel);
+        pstmt->executeUpdate();
+        cout << "Twoje konto zostalo zamkniete." << endl;
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+    }
+}
+
+int sprawdzStanKonta(sql::Connection* con, const string& pesel) {
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT stan_konta FROM bankregisterclient WHERE pesel = ?"));
+        pstmt->setString(1, pesel);
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        if (res->next()) {
+            return res->getInt("stan_konta");
+        }
+        else {
+            cerr << "Nie znaleziono konta z podanym peselem." << endl;
+            return -1;
+        }
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+        return -1;
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+        return -1;
+    }
+}
+
+Konto sprawdzDaneKonta(sql::Connection* con, const string& pesel) {
+    Konto konto;
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT id, pesel, name, lastname, numer_rozliczeniowy, typ_konta FROM bankregisterclient WHERE pesel = ?"));
+        pstmt->setString(1, pesel);
+        unique_ptr<sql::ResultSet> res(pstmt->executeQuery());
+        if (res->next()) {
+            konto.ustawId(res->getInt("id"));
+            konto.ustawPesel(res->getString("pesel"));
+            konto.ustawImie(res->getString("name"));
+            konto.ustawNazwisko(res->getString("lastname"));
+            konto.ustawNumerRozliczeniowy(res->getString("numer_rozliczeniowy"));
+            konto.ustawTypKonta(res->getString("typ_konta")[0]); // Pobranie pierwszego znaku
+        }
+        else {
+            cerr << "Nie znaleziono konta z podanym peselem." << endl;
+            konto.ustawId(-1);
+        }
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+        konto.ustawId(-1);
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+        konto.ustawId(-1);
+    }
+    return konto;
+}
+
+void wplata(sql::Connection* con, const string& pesel, double kwota) {
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("UPDATE bankregisterclient SET stan_konta = stan_konta + ? WHERE pesel = ?"));
+        pstmt->setDouble(1, kwota);
+        pstmt->setString(2, pesel);
+        pstmt->executeUpdate();
+        cout << "Wplata dokonana" << endl;
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+    }
+}
+
+void wyplata(sql::Connection* con, const string& pesel, double kwota) {
+    try {
+        unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("UPDATE bankregisterclient SET stan_konta = stan_konta - ? WHERE pesel = ?"));
+        pstmt->setDouble(1, kwota);
+        pstmt->setString(2, pesel);
+        pstmt->executeUpdate();
+        cout << "Wyplata dokonana" << endl;
+    }
+    catch (sql::SQLException& e) {
+        cerr << "SQL Error: " << e.what() << endl;
+        cerr << "SQLState: " << e.getSQLState() << endl;
+        cerr << "Error Code: " << e.getErrorCode() << endl;
+    }
+    catch (exception& e) {
+        cerr << "Other Error: " << e.what() << endl;
+    }
+}
+
+bool czyImiePoprawne(const string& name) {
+    for (char c : name) {
+        if (!isalpha(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool czyKwotaPoprawna(const string& kwota) {
+    bool foundDecimal = false;
+    for (char c : kwota) {
+        if (!isdigit(c)) {
+            if (c == '.' && !foundDecimal) {
+                foundDecimal = true;
+            }
+            else {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+
+
+
+
+
+int main() {
+
+    sql::Driver* driver;
+    sql::Connection* con;
+    sql::PreparedStatement* pstmt = nullptr; // Inicjalizacja wskaźnika do nullptr
+
+    try {
+        driver = get_driver_instance();
+        con = driver->connect(server, username, password);
+    }
+    catch (sql::SQLException& e) {
+        cout << "Could not connect to server. Error message: " << e.what() << endl;
+        system("pause");
+        exit(1);
+    }
+
+    // Please create database "bank" ahead of time
+    con->setSchema("bank");
+
+    string pesel, password, name, lastname, typ_konta;
+    int stan_konta;
+    char wybor;
+menu:
+    cout << "Witaj!" << " Wybierz opcje:" << endl << "1. Zaloz konto" << endl << "2. Zaloguj sie" << endl << "3. Zamknij" << endl;
+    cin >> wybor;
+
+    if (wybor == '1') {
+    blad_pesel:
+        cout << "Podaj pesel: ";
+        cin >> pesel;
+        if (!czyPeselPoprawny(pesel)) {
+            cout << "Blad: PESEL powinien skladac sie z dokladnie 11 cyfr." << endl;
+            goto blad_pesel;
+        }
+        cout << "Wpisz haslo: ";
+        cin >> password;
+    bladimie:
+        cout << "Podaj imie: ";
+        cin >> name;
+        if (!czyImiePoprawne(name)) {
+            cout << "Blad: Imie powinno skladac sie z liter." << endl;
+            goto bladimie;
+        }
+    bladnazwisko:
+        cout << "Podaj nazwisko: ";
+        cin >> lastname;
+        if (!czyImiePoprawne(lastname)) {
+            cout << "Blad: Nazwisko powinno skladac sie z liter." << endl;
+            goto bladnazwisko;
+        }
+        string numer_rozliczeniowy = generateRandomNumber();
+        stan_konta = 0;  // Ustawienie stanu konta na 0
+
+        do {
+            cout << "Podaj typ konta (C lub S): ";
+            cin >> typ_konta;
+            if (!czyPoprawnyTypKonta(typ_konta)) {
+                cout << "Typ konta musi byc C lub S" << endl;
+            }
+        } while (!czyPoprawnyTypKonta(typ_konta));
+
+
+        pstmt = con->prepareStatement("INSERT INTO bankregisterclient(pesel, password, name, lastname, numer_rozliczeniowy, stan_konta, typ_konta) VALUES(?,?,?,?,?,?,?)");
+        pstmt->setString(1, pesel);
+        pstmt->setString(2, password);
+        pstmt->setString(3, name);
+        pstmt->setString(4, lastname);
+        pstmt->setString(5, numer_rozliczeniowy);
+        pstmt->setInt(6, stan_konta);
+        pstmt->setString(7, typ_konta);
+        pstmt->execute();
+        cout << "Konto zostalo pomyslnie zalozone!" << endl;
+        goto menu;
+    }
+    else if (wybor == '2') {
+        cout << "Podaj pesel: ";
+        cin >> pesel;
+        double kwota;
+        string str_kwota;
+        if (login(con, pesel)) {
+            cout << "Pomyslnie zalogowano!" << endl;
+
+            do {
+                cout << "Wybierz opcje: " << endl;
+                cout << "1. Sprawdz stan konta." << endl;
+                cout << "2. Wyswietl dane o swoim koncie." << endl;
+                cout << "3. Wplata." << endl;
+                cout << "4. Wyplata." << endl;
+                cout << "5. Wyloguj sie." << endl;
+                cout << "6. Zamknij konto." << endl;
+                cin >> wybor;
+                int saldo = sprawdzStanKonta(con, pesel);
+                Konto konto = sprawdzDaneKonta(con, pesel);
+                switch (wybor) {
+                case '1':
+                    cout << "Twoj stan konta wynosi: " << saldo << endl;
+                    break;
+
+                case '2':
+                    cout << "Informacje o Twoim koncie: " << endl;
+                    cout << "ID: " << konto.pobierzId() << endl;
+                    cout << "Pesel: " << konto.pobierzPesel() << endl;
+                    cout << "Imie: " << konto.pobierzImie() << endl;
+                    cout << "Nazwisko: " << konto.pobierzNazwisko() << endl;
+                    cout << "Numer rozliczeniowy: " << konto.pobierzNumerRozliczeniowy() << endl;
+                    cout << "Typ konta: " << konto.pobierzTypKonta() << endl;
+                    break;
+                case '3':
+                    wplata:
+                    cout << "Podaj kwote do wplaty: ";
+                    cin >> str_kwota;
+                    if (czyKwotaPoprawna(str_kwota)) {
+                        kwota = stod(str_kwota);
+                        wplata(con, pesel, kwota);
+                    }
+                    else {
+                        cout << "Blad: kwota powinna byc liczba." << endl;
+                        goto wplata;
+                    }
+                    break;
+                case '4':
+                    wyplata:
+                    cout << "Podaj kwote do wyplaty: ";
+                    cin >> str_kwota;
+                    if (czyKwotaPoprawna(str_kwota)) {
+                        kwota = stod(str_kwota);
+                        wyplata(con, pesel, kwota);
+                    }
+                    else {
+                        cout << "Blad: kwota powinna byc liczba." << endl;
+                        goto wyplata;
+                    }
+                    break;
+                case '5':
+                    cout << "Wylogowano!" << endl;
+                    goto menu;
+                case '6':
+                    zamknijKonto(con, pesel);
+                    goto menu;
+                default:
+                    cout << "Niepoprawny wybor opcji" << endl;
+                }
+            } while (true);
+        }
+        else cout << "Niepoprawne dane." << endl;
+        goto menu;
+
+    }
+    else if (wybor == '3') {
+        cout << "Zamykanie aplikacji......" << endl;
+        return 0;
+    }
+    else cout << "Wybierz odpowiednia opcje" << endl;
+    goto menu;
+
+    delete pstmt;
+    delete con;
+
+    return 0;
+}
