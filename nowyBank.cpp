@@ -67,6 +67,30 @@ bool czyPeselPoprawny(const string& pesel) {
     return true;
 }
 
+
+bool czyNumerPoprawny(const string& numer_rozliczeniowy) {
+    // Sprawdzenie długości numeru rozliczeniowego 
+    if (pesel.length() != 26) {
+        return false;
+    }
+
+    // Sprawdzenie czy każdy znak numer jest cyfrą
+    for (char c : pesel) {
+        if (!isdigit(c)) {
+            return false;
+        }
+    }
+
+    // Jeśli wszystkie warunki są spełnione, numer jest poprawny
+    return true;
+}
+
+
+
+
+
+
+
 int sprawdzStanKonta(sql::Connection* con, const string& pesel) {
     try {
         unique_ptr<sql::PreparedStatement> pstmt(con->prepareStatement("SELECT stan_konta FROM bankregisterclient WHERE pesel = ?"));
@@ -182,6 +206,10 @@ int main() {
         cin >> lastname;
         cout << "Podaj numer rozliczeniowy: ";
         cin >> numer_rozliczeniowy;
+         if (!czyNumerPoprawny(numer_rozliczeniowy)) {
+            cout << "Blad: Numer powinien składac sie z dokladnie 26 cyfr." << endl;
+            return 1; // Zakończenie programu z kodem błędu
+        }
         stan_konta = 0;  // Ustawienie stanu konta na 0
         cout << "Podaj typ konta (jeden znak): ";
         cin >> typ_konta;
