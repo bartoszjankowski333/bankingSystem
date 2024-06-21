@@ -188,7 +188,7 @@ int main() {
     char typ_konta;
     int stan_konta;
     char wybor;
-    cout << "Witaj w aplikacji bankowej." << " Wybierz opcje, ktora chcesz wykonac na swoim koncie." << endl << "1. Zaloz konto" << endl << "2. Zaloguj sie" << endl;
+    cout << "Witaj!" << " Wybierz opcje:" << endl << "1. Zaloz konto" << endl << "2. Zaloguj sie" << endl;
     cin >> wybor;
     if (wybor == '1') {
 
@@ -200,19 +200,28 @@ int main() {
         }
         cout << "Wpisz haslo: ";
         cin >> password;
-        cout << "Podaj Imie: ";
+        cout << "Podaj imie: ";
         cin >> name;
         cout << "Podaj nazwisko: ";
         cin >> lastname;
-        cout << "Podaj numer rozliczeniowy: ";
-        cin >> numer_rozliczeniowy;
-         if (!czyNumerPoprawny(numer_rozliczeniowy)) {
-            cout << "Blad: Numer powinien składac sie z dokladnie 26 cyfr." << endl;
-            return 1; // Zakończenie programu z kodem błędu
-        }
+       // Walidacja numeru rozliczeniowego
+        do {
+            cout << "Podaj numer rozliczeniowy (26 cyfr): ";
+            cin >> numer_rozliczeniowy;
+            if (!sprawdzNumerRozliczeniowy(numer_rozliczeniowy)) {
+                cout << "Numer rozliczeniowy musi mieć dokładnie 26 cyfr." << endl;
+            }
+        } while (!sprawdzNumerRozliczeniowy(numer_rozliczeniowy));
         stan_konta = 0;  // Ustawienie stanu konta na 0
-        cout << "Podaj typ konta (jeden znak): ";
-        cin >> typ_konta;
+        do {
+            cout << "Podaj typ konta (C lub S): ";
+            cin >> typ_konta;
+            if (!sprawdzTypKonta(typ_konta)) {
+                cout << "Typ konta musi być 'C' lub 'S'." << endl;
+            }
+        } while (!sprawdzTypKonta(typ_konta));
+
+        
         pstmt = con->prepareStatement("INSERT INTO bankregisterclient(pesel, password, name, lastname, numer_rozliczeniowy, stan_konta, typ_konta) VALUES(?,?,?,?,?,?,?)");
         pstmt->setString(1, pesel);
         pstmt->setString(2, password);
@@ -222,7 +231,7 @@ int main() {
         pstmt->setInt(6, stan_konta);
         pstmt->setString(7, string(1, typ_konta)); // Konwersja char na string
         pstmt->execute();
-        cout << "Twoje konto zostalo zalozone." << endl;
+        cout << "Konto zostalo pomyslnie zalozone!" << endl;
     }
     if (wybor == '2') {
         cout << "Podaj pesel: ";
@@ -230,7 +239,7 @@ int main() {
         cout << "Podaj haslo: ";
         cin >> password;
         if (login(con, pesel, password)) {
-            cout << "Pomyslnie zalogowano." << endl;
+            cout << "Pomyslnie zalogowano!" << endl;
             while (true) {
                 cout << "Wybierz opcje: " << endl;
                 cout << "1. Sprawdz stan konta." << endl;
@@ -263,11 +272,11 @@ int main() {
                 case '4':
 
                 case '5':
-                    cout << "Wylogowano z konta." << endl;
+                    cout << "Wylogowano!" << endl;
                     break;
                     return 0;
                 case '6':
-                    cout << "Na pewno chcesz zamknac swoje konto? Mamy niesamowite znizki dla naszych klientow." << endl << "Stracisz WSZYSTKIE promocje oraz proces usuwania konta jest nieodwracalny." << endl;
+                    cout << "Na pewno chcesz zamknac konto? Wszystkie dane zostana utracone." << endl;
                     cin >> wybor;
                     if (wybor == 'tak') {
                         pstmt = con->prepareStatement("DELETE FROM bankregisterclient WHERE pesel = ?");
